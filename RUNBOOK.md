@@ -5,12 +5,19 @@ Pipeline source lives in Drive folder `NoroSync Pipeline`
 (`1W4QipN34LaWtGBRNRS-ZCq35yLNp0XHj`). Output folder is
 `1iS8hL5bl_wHb32fj4ZCM4eYi3iOPccI9`.
 
-**Deployment: fetch `norosync_pipeline.zip`, not the individual .py files.**
-Measured 29.07.2026: downloading the seven source files one by one took ~25
-minutes and 19 tool calls, against ~4 minutes for the entire rest of the job.
-One compressed download and an unzip replaces all of it. The loose .py files
-are kept in the folder for reading, but a run must not fetch them individually.
-When the pipeline changes, re-zip and upload a new copy of the same filename.
+**Deployment: fetch from GitHub with curl, never from Drive.**
+
+    BASE=https://raw.githubusercontent.com/marcusdawsonx/norosync/main
+    for f in RUNBOOK.md run.py schema.py render.py build_facts.py \
+             build_workbook.py weekly.py; do curl -sfO "$BASE/$f"; done
+
+The repo is public, so this needs no token and nothing can expire. Measured
+29.07.2026: 2.07 seconds and zero tokens, against ~25 minutes and 19 tool calls
+for the same files via the Drive connector. The reason is structural — a Drive
+download returns base64 into the model's context, which then has to be retyped
+to reach disk; curl writes bytes straight to disk and the model never sees them.
+Drive remains the OUTPUT path (CSVs for the Apps Script sweep). It is not the
+input path.
 
 The pipeline is stateless. Nothing carries over between runs; every run pulls
 what it needs and rebuilds from scratch. There is no state file to corrupt.
